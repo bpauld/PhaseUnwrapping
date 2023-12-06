@@ -2,19 +2,18 @@
 
 Once you have downloaded the repository run the following
 
-``
-cd snaphu-v2.0.6/src
-``
-
-``
-make
-``
+```
+$ cd snaphu-v2.0.6
+$ mkdir bin
+$ cd src
+$ make
+```
 
 To reproduce the experiments, run in the working directory:
 
-``
-python final_script.py
-``
+```
+$ python final_script.py
+```
 
 To cite our our work please use:
 TODO
