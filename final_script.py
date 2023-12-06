@@ -15,7 +15,7 @@ def run_exp():
                  "kilimanjaro", "mount_sinai", "korab_northmacedonia", "nevada_usa",  "zeil_australia", "wulonggou_china",
                  "warjan_afghanistan"]
 
-    location = "arz_lebano"
+    location = "arz_lebanon"
 
 
     #specify path to data here
