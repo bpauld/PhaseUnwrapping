@@ -233,7 +233,7 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
     for iteration in range(1, int(max_iter) + 1):
         if verbose:
-            print("########################### Iteration", iteration, ", delta =", delta, "#####################################")
+            print("########################### Iteration", iteration, ", delta =", delta.item(), "#####################################")
             print(torch.sum(U).item())
 
         # Update Vh, Vv, Vpsi with CG
