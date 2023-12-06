@@ -15,14 +15,16 @@ def run_exp():
                  "kilimanjaro", "mount_sinai", "korab_northmacedonia", "nevada_usa",  "zeil_australia", "wulonggou_china",
                  "warjan_afghanistan"]
 
+    location = "arz_lebanon"
+
 
     #specify path to data here
     #path_data = f"/scratch/bpauldub/data/topo_phase_dataset_{version}/data_{size_image}/{location}/npy_files/"
-    path_data = os.path.join(os.getcwd(), "data", "arz_lebanon", "npy_files")
+    path_data = os.path.join(os.getcwd(), "data", location, "npy_files")
 
     # specify where you want to save results
     #path_results = f"/scratch/bpauldub/results/results_irls_unwrap_{version}/data_{size_image}/{location}/{noise_level}/"
-    path_results = os.path.join(os.getcwd(), "results", "arz_lebanon")
+    path_results = os.path.join(os.getcwd(), "results", location)
 
     # load your data here
     path_X = os.path.join(path_data,  f"{noise_level}.npy")
