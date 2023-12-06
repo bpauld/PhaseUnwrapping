@@ -12,7 +12,7 @@ def run_exp():
     noise_level = "real_goldstein"
 
     locations = ["arz_lebanon", "etna", "elcapitan",  
-                 "kilimanjaro", "mount_sinai", "korab_northmacedonia", "nevada_usa",  "zeil_australia", "wulonggou_china",
+                 "kilimanjaro", "korab_northmacedonia", "nevada_usa",  "zeil_australia", "wulonggou_china",
                  "warjan_afghanistan"]
 
     for location in locations:
