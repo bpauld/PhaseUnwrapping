@@ -5,7 +5,7 @@ Once you have downloaded the repository run the following
 ``
 cd snaphu-v2.0.6/src
 ``
-then
+
 ``
 make
 ``
