@@ -19,6 +19,7 @@ def unwrap(
     Ch=None, Cv=None, 
     weighting_strategy="snaphu_weights",
     snaphu_config_file=None, snaphu_bin=None,
+    run_on_gpu: bool=True,
     verbose=True):
     """Unwraps an image X.
 
@@ -88,14 +89,16 @@ def unwrap(
         raise NotImplementedError("Weighting strategy {} unknwon".format(weighting_strategy))
 
 
-    U, Vh, Vv = IRLS(X, Ch, Cv, model_params=model_params, irls_params=irls_params, verbose=verbose)
+    U, Vh, Vv = IRLS(X, Ch, Cv, model_params=model_params, irls_params=irls_params, run_on_gpu=run_on_gpu, verbose=verbose)
 
     return U, Vh, Vv
 
 
 
 def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
-        irls_params: IrlsParameters=IrlsParameters(), verbose=True):
+        irls_params: IrlsParameters=IrlsParameters(), 
+        run_on_gpu=True,
+        verbose=True):
     
     N, M = X.shape
 
@@ -131,11 +134,11 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
     U = torch.zeros((N, M), dtype=DEFAULT_TYPE)
 
 
-    if torch.cuda.is_available():
+    if run_on_gpu and torch.cuda.is_available():
         device = torch.device("cuda")
         if verbose:
             print("Running on CUDA")
-    elif torch.backends.mps.is_available():
+    elif run_on_gpu and torch.backends.mps.is_available():
         device = torch.device("mps")
         if verbose:
             print("Running on Metal (MPS)")

@@ -16,6 +16,7 @@ def run_exp():
                  "warjan_afghanistan"]
 
     location = "arz_lebanon"
+    print(location)
 
 
     #specify path to data here
@@ -27,18 +28,25 @@ def run_exp():
     path_results = os.path.join(os.getcwd(), "results", location)
 
     # load your data here
-    path_X = os.path.join(path_data,  f"{noise_level}.npy")
+    if noise_level == "real_goldstein": 
+        path_X = os.path.join(path_data,  "real_goldstein.npy")
+        X = np.load(path_X)
+
+    if noise_level == "noiseless":
+        path_X = os.path.join(path_data,  "simu_unwrapped.npy")
+        X = wrap_matrix(np.load(path_X))
+
     path_amp1 = os.path.join(path_data, "amp1.npy")
     path_amp2 = os.path.join(path_data, "amp2.npy")
     path_corr = os.path.join(path_data, "coherence.npy")
-    X = np.load(path_X)
-    if os.path.isfile(path_amp1) and os.path.isfile(path_amp2):
+    
+    if os.path.isfile(path_amp1) and os.path.isfile(path_amp2) and noise_level != "noiseless":
         amp1 = np.load(path_amp1)
         amp2 = np.load(path_amp2)
     else:
         amp1 = None
         amp2 = None
-    if os.path.isfile(path_corr):
+    if os.path.isfile(path_corr) and noise_level != "noiseless":
         corrfile = np.load(path_corr)
     else:
         corrfile = None    
@@ -50,6 +58,9 @@ def run_exp():
     model_params = ModelParameters()
     model_params.tau = tau
     model_params.delta = delta
+
+    #run on gpu
+    run_on_gpu = False
 
     # Define weighting strategy.
     # Here you can define or load your own weights Ch and Cv.
@@ -96,6 +107,7 @@ def run_exp():
     amp1=amp1, amp2=amp2, corrfile=corrfile,
     weighting_strategy=weighting_strategy,
     Ch=Ch, Cv=Cv, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
+    run_on_gpu=run_on_gpu,
     verbose=True)
 
     duration = time.time() - start_time
@@ -105,8 +117,8 @@ def run_exp():
     # save results
     if not os.path.isdir(path_results):
         os.makedirs(path_results)
-    np.save(os.path.join(path_results, "U.npy"), U)
-    np.save(os.path.join(path_results, "duration.npy"), duration)
+    #np.save(os.path.join(path_results, "U.npy"), U)
+    #np.save(os.path.join(path_results, "duration.npy"), duration)
 
 
 
