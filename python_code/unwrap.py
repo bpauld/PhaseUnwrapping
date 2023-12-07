@@ -69,11 +69,11 @@ def unwrap(
         if snaphu_bin is None:
             raise RuntimeError("Cannot compute weights with SNAPHU if SNAPHU path is not specified.")
         elif not os.path.isfile(snaphu_bin):
-            raise RuntimeError("Cannot find snaphu bin at specified location {}".format(snaphu_bin))
+            raise RuntimeError(f"Cannot find snaphu bin at specified location {snaphu_bin}")
         else:
             print("Computing statistical-based weights using SNAPHU")
             tmpdir = os.path.join(os.getcwd(), "snaphu_weights_tmp_dir") #will be removed anyway
-            Ch, Cv = get_weights_from_snaphu(X, tmpdir, amp1=amp1, amp2=amp2, corrfile=corrfile, snaphu_bin=snaphu_bin, snaphu_config_file=snaphu_config_file)
+            Ch, Cv = get_weights_from_snaphu(X.astype(np.float32), tmpdir, amp1=amp1, amp2=amp2, corrfile=corrfile, snaphu_bin=snaphu_bin, snaphu_config_file=snaphu_config_file)
             Cv[0, 0] = np.median(Cv)
             Cv[0, -1] = np.median(Cv)
             Cv[-1, 0] = np.median(Cv)
@@ -112,8 +112,6 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
     if max_iter_CG_strategy != "heuristics" and max_iter_CG_strategy != "constant":
         raise NotImplementedError("Strategy {} for updating max number of CG iterations unknown.".format(max_iter_CG_strategy))
-    if not torch.cuda.is_available():
-        print("WARNING: no CUDA device found. Running on CPU. This will significantly impact performance")
 
     S = build_S(N)
     T = build_T(M)
@@ -132,16 +130,40 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
     Wv = torch.ones((N, M-1), dtype=DEFAULT_TYPE)
     U = torch.zeros((N, M), dtype=DEFAULT_TYPE)
 
+
     if torch.cuda.is_available():
-        S = S.cuda() 
-        T = T.cuda() 
-        U = U.cuda()  
-        Gh = Gh.cuda() 
-        Gv = Gv.cuda() 
-        Wh = Wh.cuda()  
-        Wv = Wv.cuda() 
-        Ch = Ch.cuda()
-        Cv = Cv.cuda()
+        device = torch.device("cuda")
+        if verbose:
+            print("Running on CUDA")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        if verbose:
+            print("Running on Metal (MPS)")
+    else:
+        device = torch.device("cpu")
+        if verbose:
+            print("WARNING: no GPU device found. Running on CPU. This will significantly impact performance")
+
+    #if torch.cuda.is_available():
+    #    S = S.cuda() 
+    #    T = T.cuda() 
+    #    U = U.cuda()  
+    #    Gh = Gh.cuda() 
+    #    Gv = Gv.cuda() 
+    #    Wh = Wh.cuda()  
+    #    Wv = Wv.cuda() 
+    #    Ch = Ch.cuda()
+    #    Cv = Cv.cuda()
+
+    S = S.to(device)
+    T = T.to(device)
+    U = U.to(device)
+    Gh = Gh.to(device)
+    Gv = Gv.to(device)
+    Wh = Wh.to(device)
+    Wv = Wv.to(device)
+    Ch = Ch.to(device)
+    Cv = Cv.to(device)
 
 
     S = S.to_sparse()
@@ -175,14 +197,22 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
         PS_transpose = PS.T
         PT_transpose = PT.T
 
-        if torch.cuda.is_available():
-            DS = DS.cuda()
-            DT = DT.cuda()
-            PS = PS.cuda() 
-            PT = PT.cuda() 
-            PS_transpose = PS_transpose.cuda() 
-            PT_transpose = PT_transpose.cuda()  
-            kron_diag = kron_diag.cuda()  
+        #if torch.cuda.is_available():
+          #  DS = DS.cuda()
+          #  DT = DT.cuda()
+           # PS = PS.cuda() 
+           # PT = PT.cuda() 
+           # PS_transpose = PS_transpose.cuda() 
+           # PT_transpose = PT_transpose.cuda()  
+           # kron_diag = kron_diag.cuda()  
+        DS = DS.to(device)
+        DT = DT.to(device)
+        PS = PS.to(device)
+        PT = PT.to(device)
+        PS_transpose = PS_transpose.to(device)
+        PT_transpose = PT_transpose.to(device)
+        kron_diag = kron_diag.to(device)
+
         preconditioner_constant_part = (PS, PS_transpose, PT, PT_transpose, kron_diag)
 
     elif preconditioner_name == "block_diag_dct":
@@ -202,8 +232,9 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
         kron_diag = kron_diag.reshape((N, M), order='F')
         kron_diag = torch.tensor(kron_diag, dtype=DEFAULT_TYPE)
-        if torch.cuda.is_available():
-            kron_diag = kron_diag.cuda()
+        #if torch.cuda.is_available():
+        #    kron_diag = kron_diag.cuda()
+        kron_diag = kron_diag.to(device)
         preconditioner_constant_part = kron_diag
 
 
@@ -211,9 +242,12 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
     tau = torch.tensor(tau, dtype=DEFAULT_TYPE)
     delta = torch.tensor(delta, dtype=DEFAULT_TYPE)
-    if torch.cuda.is_available():
-        tau = tau.cuda()
-        delta = delta.cuda()
+    
+    #if torch.cuda.is_available():
+    #    tau = tau.cuda()
+    #    delta = delta.cuda()
+    tau = tau.to(device)
+    delta = delta.to(device)
 
     Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
     Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
@@ -270,6 +304,7 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
         relative_improvement = (F_delta_prev - F_delta_new) / F_delta_prev
         if verbose:
             print("F_delta after updating Wh, Wv =", F_delta_new.item(), ", relative_improvement =", relative_improvement.item())
+            print("min(Wh) = ", torch.min(Wh).item(), ", max(Wh) = ", torch.max(Wh).item())
 
         F_delta_prev = F_delta_new
         if max_iter_CG_strategy == "heuristics":
