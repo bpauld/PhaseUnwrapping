@@ -1,6 +1,6 @@
 import torch
 from python_code.image_manipulation import *
-import torch_dct as dct
+#import torch_dct as dct
 import os
 from python_code.utils import get_weights_from_snaphu
 from python_code.parameters import ModelParameters, IrlsParameters
@@ -56,6 +56,7 @@ def unwrap(
     """
 
     N, M = X.shape
+    print(N, M)
 
     if Ch is not None and Cv is not None:
         if Ch.shape == (N-1, M) and Cv.shape == (N, M-1):
@@ -186,7 +187,7 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
             DT = DS
         else:
             DT, PT = torch.linalg.eigh((T @ T.T).to_dense(), UPLO="L")
-            #DT = torch.where(TT_eigenvalues > 1e-6, TT_eigenvalues, 1e-6)
+            DT = torch.where(DT > 1e-4, DT, 1e-4)
 
         if verbose:
             print("Done computing decomposition of S'S and of TT'...")
