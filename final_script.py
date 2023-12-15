@@ -20,7 +20,7 @@ def run_exp():
     path_data = os.path.join(os.getcwd(), "data", location, "npy_files")
 
     # specify where you want to save results
-    path_results = os.path.join(os.getcwd(), "results", location)
+    path_results = os.path.join(os.getcwd(), "results", location, noise_level)
 
     # load your data here
     if noise_level == "real_goldstein": 
