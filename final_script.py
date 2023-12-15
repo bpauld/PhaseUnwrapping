@@ -7,8 +7,6 @@ from python_code.parameters import ModelParameters, IrlsParameters
 
 
 def run_exp():
-    version = "v2"
-    size_image = str(2048)
     noise_level = "real_goldstein"
 
     locations = ["arz_lebanon", "etna", "elcapitan",  
@@ -17,14 +15,11 @@ def run_exp():
 
     location = "arz_lebanon"
     print(location)
-
-
+    
     #specify path to data here
-    #path_data = f"/scratch/bpauldub/data/topo_phase_dataset_{version}/data_{size_image}/{location}/npy_files/"
     path_data = os.path.join(os.getcwd(), "data", location, "npy_files")
 
     # specify where you want to save results
-    #path_results = f"/scratch/bpauldub/results/results_irls_unwrap_{version}/data_{size_image}/{location}/{noise_level}/"
     path_results = os.path.join(os.getcwd(), "results", location)
 
     # load your data here
@@ -98,7 +93,6 @@ def run_exp():
     irls_params.increase_CG_max_iteration_factor = increase_CG_iteration_factor
     irls_params.rel_tol_CG = rel_tol_CG
     irls_params.abs_tol_CG = abs_tol_CG
-
 
     start_time = time.time()
     U, Vh, Vv = unwrap(X,
