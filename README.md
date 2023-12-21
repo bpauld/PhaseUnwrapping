@@ -2,8 +2,14 @@
 
 ## Installation
 
-Once you have downloaded the repository run the following
+Once you have downloaded the repository, we suggest creating a `conda` environment named `phase_unwrapping`.
+```
+conda env create -f environment.yml
+conda activate phase_unwrap
+```
+We also provide a `requirements.txt` file for user wishing to use another virtual environment manager.
 
+Once this is done, in the root directory of the project, you need to compile SNAPHU. This is only necessary if you plan to use the SNAPHU generated weights in your objective function. We strongly suggest doint it.
 ```
 $ cd snaphu-v2.0.6
 $ mkdir bin
