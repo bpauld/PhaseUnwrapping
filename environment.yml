@@ -1,4 +1,4 @@
-name: Phase_Unwrapping
+name: phase_unwrapping
 channels:
   - conda-forge
   - defaults
@@ -65,4 +65,4 @@ dependencies:
       - triton==2.1.0
       - typing-extensions==4.9.0
       - urllib3==2.1.0
-prefix: /home/bpauldub/miniconda3/envs/Phase_Unwrapping
+prefix: /home/bpauldub/miniconda3/envs/phase_unwrapping
