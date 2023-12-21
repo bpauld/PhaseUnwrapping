@@ -25,7 +25,7 @@ To reproduce the experiments, run in the working directory:
 $ python final_script.py
 ```
 
-This will load simulated and real images from a region in Lebanon from the `data` folder. It will then unwrap the images using the IRLS algorithm.
+This will load simulated and real images from a region in Lebanon from the `data` folder. It will then unwrap the images using the IRLS algorithm, and write the output to a `results` folder.
 
 ## Visualize results
 
