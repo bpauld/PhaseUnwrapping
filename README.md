@@ -7,9 +7,9 @@ Once you have downloaded the repository, we suggest creating a `conda` environme
 conda env create -f environment.yml
 conda activate phase_unwrap
 ```
-We also provide a `requirements.txt` file for user wishing to use another virtual environment manager.
+We also provide a `requirements.txt` file for users wishing to use another virtual environment manager.
 
-Once this is done, in the root directory of the project, you need to compile SNAPHU. This is only necessary if you plan to use the SNAPHU generated weights in your objective function. We strongly suggest doint it.
+Once this is done, you need to compile SNAPHU. This step is not necessary if you plan to use your own weights or uniform weights in your objective function. However SNAPHU generated weights have shown good practical performance, so we encourage using them. In the root directory, run the following.
 ```
 $ cd snaphu-v2.0.6
 $ mkdir bin
@@ -24,6 +24,8 @@ To reproduce the experiments, run in the working directory:
 ```
 $ python final_script.py
 ```
+
+This will load simulated and real images from a region in Lebanon from the `data` folder. It will then unwrap the images using the IRLS algorithm.
 
 ## Visualize results
 
