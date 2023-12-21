@@ -16,15 +16,13 @@ $ python final_script.py
 ```
 
 To visualize the experiments, simply use the notebook `visualize_results.ipynb`.
-You should be able to produce the images
+For the experiments on real images, the plots should look like the following:
 
 ![Screenshot](screenshots/real_goldstein.png)
 
-for the experiment on real images, and
+For the experiments on simulated images, the plots should look like the following:
 
 ![Screenshot](screenshots/noiseless.png)
-
-for the experiment on simulated images.
 
 
 To cite our our work please use:
