@@ -15,5 +15,17 @@ To reproduce the experiments, run in the working directory:
 $ python final_script.py
 ```
 
+To visualize the experiments, simply use the `visualize_results.ipynb' notebook.
+You should be able to produce the images
+
+![Screenshot](screenshots/real_goldstein.png)
+
+for the experiment on real images, and
+
+![Screenshot](screenshots/noiseless.png)
+
+for the experiment on simulated images.
+
+
 To cite our our work please use:
 TODO
