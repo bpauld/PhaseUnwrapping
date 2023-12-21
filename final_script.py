@@ -7,50 +7,11 @@ from python_code.parameters import ModelParameters, IrlsParameters
 
 
 def run_exp():
-    version = "v2"
-    size_image = str(2048)
-    noise_level = "real_goldstein"
-
-    locations = ["arz_lebanon", "etna", "elcapitan",  
-                 "kilimanjaro", "mount_sinai", "korab_northmacedonia", "nevada_usa",  "zeil_australia", "wulonggou_china",
-                 "warjan_afghanistan"]
-
     location = "arz_lebanon"
     print(location)
-
-
-    #specify path to data here
-    #path_data = f"/scratch/bpauldub/data/topo_phase_dataset_{version}/data_{size_image}/{location}/npy_files/"
-    path_data = os.path.join(os.getcwd(), "data", location, "npy_files")
-
-    # specify where you want to save results
-    #path_results = f"/scratch/bpauldub/results/results_irls_unwrap_{version}/data_{size_image}/{location}/{noise_level}/"
-    path_results = os.path.join(os.getcwd(), "results", location)
-
-    # load your data here
-    if noise_level == "real_goldstein": 
-        path_X = os.path.join(path_data,  "real_goldstein.npy")
-        X = np.load(path_X)
-
-    if noise_level == "noiseless":
-        path_X = os.path.join(path_data,  "simu_unwrapped.npy")
-        X = wrap_matrix(np.load(path_X))
-
-    path_amp1 = os.path.join(path_data, "amp1.npy")
-    path_amp2 = os.path.join(path_data, "amp2.npy")
-    path_corr = os.path.join(path_data, "coherence.npy")
     
-    if os.path.isfile(path_amp1) and os.path.isfile(path_amp2) and noise_level != "noiseless":
-        amp1 = np.load(path_amp1)
-        amp2 = np.load(path_amp2)
-    else:
-        amp1 = None
-        amp2 = None
-    if os.path.isfile(path_corr) and noise_level != "noiseless":
-        corrfile = np.load(path_corr)
-    else:
-        corrfile = None    
-
+    #specify path to data here
+    path_data = os.path.join(os.getcwd(), "data", location, "npy_files")
 
     # Define model parameters 
     tau = 1e-2
@@ -59,7 +20,7 @@ def run_exp():
     model_params.tau = tau
     model_params.delta = delta
 
-    #run on gpu
+    # run on gpu
     run_on_gpu = False
 
     # Define weighting strategy.
@@ -68,7 +29,7 @@ def run_exp():
     Cv = None
     # If the above weights are not set to None,
     # setting weighting_strategy to "snaphu_weights" will compute statistical-based weights using SNAPHU,
-    # otherwise setting weighting_strategy to None will set all weights equal to 1
+    # otherwise setting weighting_strategy to None or to "uniform" will set all weights equal to 1
     weighting_strategy = "snaphu_weights"
 
     # Must specify a path to SNAPHU if weighting_strategy is "snaphu_weights"
@@ -100,6 +61,16 @@ def run_exp():
     irls_params.abs_tol_CG = abs_tol_CG
 
 
+
+    # First load simulated image
+    path_X = os.path.join(path_data,  "simu_unwrapped.npy")
+    X = wrap_matrix(np.load(path_X))
+
+    # For simulated image, we do not use amplitude and correlation files
+    amp1 = None
+    amp2 = None
+    corrfile = None    
+
     start_time = time.time()
     U, Vh, Vv = unwrap(X,
     model_params=model_params,
@@ -111,14 +82,47 @@ def run_exp():
     verbose=True)
 
     duration = time.time() - start_time
-    print("Total duration (s) = ", duration)
-
-
+    print("Total duration (s) = ", duration)    
+    
     # save results
+    path_results = os.path.join(os.getcwd(), "results", location, "noiseless")
     if not os.path.isdir(path_results):
         os.makedirs(path_results)
-    #np.save(os.path.join(path_results, "U.npy"), U)
-    #np.save(os.path.join(path_results, "duration.npy"), duration)
+    np.save(os.path.join(path_results, "U.npy"), U)
+    np.save(os.path.join(path_results, "duration.npy"), duration)
+
+
+    # Now load real image
+    path_X = os.path.join(path_data,  "real_goldstein.npy")
+    X = np.load(path_X)
+    
+    # For real images, we use amplitude and correlation files
+    path_amp1 = os.path.join(path_data,  "amp1.npy")
+    path_amp2 = os.path.join(path_data, "amp2.npy")
+    path_corrfile = os.path.join(path_data, "coherence.npy")
+    amp1 = np.load(path_amp1)
+    amp2 = np.load(path_amp2)
+    corrfile = np.load(path_corrfile)
+
+    start_time = time.time()
+    U, Vh, Vv = unwrap(X,
+    model_params=model_params,
+    irls_params=irls_params,
+    amp1=amp1, amp2=amp2, corrfile=corrfile,
+    weighting_strategy=weighting_strategy,
+    Ch=Ch, Cv=Cv, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
+    run_on_gpu=run_on_gpu,
+    verbose=True)
+
+    duration = time.time() - start_time
+    print("Total duration (s) = ", duration)    
+    
+    # save results
+    path_results = os.path.join(os.getcwd(), "results", location, "real_goldstein")
+    if not os.path.isdir(path_results):
+        os.makedirs(path_results)
+    np.save(os.path.join(path_results, "U.npy"), U)
+    np.save(os.path.join(path_results, "duration.npy"), duration)
 
 
 
