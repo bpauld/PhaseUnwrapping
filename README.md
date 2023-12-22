@@ -5,7 +5,7 @@
 Once you have downloaded the repository, we suggest creating a `conda` environment named `phase_unwrapping`.
 ```
 conda env create -f environment.yml
-conda activate phase_unwrap
+conda activate phase_unwrapping
 ```
 We also provide a `requirements.txt` file for users wishing to use another virtual environment manager.
 
