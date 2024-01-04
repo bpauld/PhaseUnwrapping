@@ -24,22 +24,22 @@ def unwrap(
     """Unwraps an image X.
 
     Arguments:
-        X: ndarray
-            array of shape (N, M) containing image to be unwrapped
+        X: 2darray (N, M)
+            image to be unwrapped
         model_params: ModelParameters, optional
             parameters of the model (default is ModelParameters())
         irls_params: IrlsParams, optional
             parameters for running the IRLS algorithm (default is IrlsParameters())
-        amp1: ndarray, optional
+        amp1: 2darray (N, M), optional
             amplitude of the first image in the interferogram. Is used to compute weights if available (default is None)
-        amp2: ndarray, optional
+        amp2: 2darray (N, M), optional
             amplitude of the second image in the interferogram. Is used to compute weights if available (default is None)
-        corrfile: ndarray, optional
+        corrfile: 2darray (N, M), optional
             coherence map of the interferogram. Is used to compute weights if available (default is None)
-        Ch: ndarray, optional.
-            user-supplied weights of shape (N-1, M) (default is None).
-        Cv: ndarray, optional.
-            user-supplied weights of shape (N, M-1) (default is None).
+        Ch: 2darray (N-1, M), optional.
+            user-supplied weights (default is None).
+        Cv: 2darray (N, M-1), optional.
+            user-supplied weights (default is None).
         weighting_strategy: str, optional.
             If Ch and Cv are None, strategy for computing them. Should either be "uniform", "snaphu_weights" or None (default is "snaphu_weights").
         snaphu_config_file: str, optional.
@@ -51,8 +51,8 @@ def unwrap(
         verbose: Bool, optional (default is True).        
 
     Returns:
-        U: ndarray
-            unwrapped image ndarray of shape (N, M)
+        U: 2darray (N, M)
+            unwrapped image
     """
 
     N, M = X.shape
@@ -100,6 +100,29 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
         irls_params: IrlsParameters=IrlsParameters(), 
         run_on_gpu=True,
         verbose=True):
+    """Performs L1-norm minimization phase unwrapping using IRLS algorithm on image X with weights Ch and Cv.
+
+    Arguments:
+        X: 2darray (N, M)
+            image to be unwrapped
+        model_params: ModelParameters, optional
+            parameters of the model (default is ModelParameters())
+        irls_params: IrlsParams, optional
+            parameters for running the IRLS algorithm (default is IrlsParameters())
+        Ch: 2darray (N-1, M)
+            weights cooresponding to horizontal gradients
+        Cv: 2darray (N, M-1)
+            weights cooresponding to vertical gradients
+        verbose: Bool, optional (default is True).        
+
+    Returns:
+        U: 2darray (N, M)
+            unwrapped image
+        Vh: 2darray (N-1, M)
+            horizontal penalty term
+        Vv: 2darray (N, M-1)
+            vertical pernalty term
+    """
     
     N, M = X.shape
 
@@ -148,17 +171,6 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
         if verbose:
             print("WARNING: no GPU device found. Running on CPU. This will significantly impact performance")
 
-    #if torch.cuda.is_available():
-    #    S = S.cuda() 
-    #    T = T.cuda() 
-    #    U = U.cuda()  
-    #    Gh = Gh.cuda() 
-    #    Gv = Gv.cuda() 
-    #    Wh = Wh.cuda()  
-    #    Wv = Wv.cuda() 
-    #    Ch = Ch.cuda()
-    #    Cv = Cv.cuda()
-
     S = S.to(device)
     T = T.to(device)
     U = U.to(device)
@@ -200,15 +212,7 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
         PS_transpose = PS.T
         PT_transpose = PT.T
-
-        #if torch.cuda.is_available():
-          #  DS = DS.cuda()
-          #  DT = DT.cuda()
-           # PS = PS.cuda() 
-           # PT = PT.cuda() 
-           # PS_transpose = PS_transpose.cuda() 
-           # PT_transpose = PT_transpose.cuda()  
-           # kron_diag = kron_diag.cuda()  
+ 
         DS = DS.to(device)
         DT = DT.to(device)
         PS = PS.to(device)
@@ -253,8 +257,10 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
     tau = tau.to(device)
     delta = delta.to(device)
 
-    Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
-    Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
+    #Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
+    #Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
+    Wh =  torch.sqrt(Ch**2 * Vh**2 + delta**2)
+    Wv =  torch.sqrt(Cv**2 * Vv**2 + delta**2)
 
     F_delta_prev = F_delta(delta=delta, Vh=Vh, Vv=Vv, U=U, Wh=Wh, Wv=Wv,
                                        tau=tau, Gh=Gh, Gv=Gv, S=S, T=T, Ch=Ch, Cv=Cv)
@@ -281,7 +287,7 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
 
         if verbose:
             print("Maximum number of CG iterations = ", next_max_iter_CG)
-        Vh, Vv, U = CG(Ch**2 * Wh, Cv**2 * Wv, S, T,
+        Vh, Vv, U = CG(Ch**2 * ( 1.0  / Wh), Cv**2 * ( 1.0 / Wv), S, T,
                                         tau, Gh, Gv,
                                         Vh, Vv, U,
                                         max_iter_CG=next_max_iter_CG,
@@ -301,8 +307,10 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
         F_delta_prev = F_delta_new
 
         # Update weights
-        Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
-        Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
+        #Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
+        #Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
+        Wh =  torch.sqrt(Ch**2 * Vh**2 + delta**2)
+        Wv =  torch.sqrt(Cv**2 * Vv**2 + delta**2)
 
         F_delta_new = F_delta(delta=delta, Vh=Vh, Vv=Vv, U=U, Wh=Wh, Wv=Wv, tau=tau, Gh=Gh, Gv=Gv, S=S, T=T, Ch=Ch, Cv=Cv)
         relative_improvement = (F_delta_prev - F_delta_new) / F_delta_prev
@@ -324,9 +332,53 @@ def IRLS(X, Ch, Cv, model_params: ModelParameters=ModelParameters(),
     return U.cpu().numpy(), Vh.cpu().numpy(), Vv.cpu().numpy()
 
 
-def CG(Wh, Wv, S, T, tau, Gh, Gv, Vh_start, Vv_start, U_start,
+def CG(Qh, Qv, S, T, tau, Gh, Gv, Vh_start, Vv_start, U_start,
                         max_iter_CG, preconditioner_name, preconditioner_constant_part,
                         abs_tol=1e-10, rel_tol=0, verbose=True):
+
+    """Performs conjugate gradient method to solve linear system appearing in the IRLS iterations.
+
+    Arguments:
+        Qh: 2darray (N-1, M)
+            constant matrix involved in the hadamard product of the horizontal part of the linear map, i.e. should be Qh = Ch * Ch * (1/Wh).
+        Qv: 2darray (N, M-1)
+            constant matrix involved in the hadamard product of the vertical part of the linear map, i.e. should be Qv = Cv * Cv * (1/Wv).
+        S: 2darray(N-1, N)
+            horizontal shift array
+        T: 2darray(M, M-1)
+            vertical shift array
+        tau: float
+            quadratic penalization term
+        Gh: 2darray (N-1, M)
+            horizontal wrapped gradients
+        Gv: 2darray (N, M-1)
+            vertical wrapped gradients
+        Vh_start: 2darray (N-1, M)
+            initial value for horizontal Vh term
+        Vv_start: 2darray (N, M-1)
+            initial value for vertical Vv term
+        U_start: 2darray (N, M)
+            initial value for U term
+        max_iter_CG: int
+            maximum number of iterations
+        preconditioner_name: str
+            preconditioner name. Should be either None or "block_diag"
+        preconditioner_constant_part: tuple
+            tuple containing useful precomputed factorizations for applying preconditioner
+        abs_tol: float
+            stop algorithm when residue norm is smaller than this value (default is 1e-10)
+        rel_tol: float:
+            stop algorithm when relative residue norm is smaller than this value (default is 0)
+        verbose: Bool, optional (default is True).        
+
+    Returns:
+        Vh: 2darray (N-1, M)
+            horizontal Vh term
+        Vv: 2darray (N, M-1)
+            vertical Vv term
+        U: 2darray (N, M)
+            U term
+    """
 
     N = S.shape[0]
     M = T.shape[1]
@@ -336,13 +388,13 @@ def CG(Wh, Wv, S, T, tau, Gh, Gv, Vh_start, Vv_start, U_start,
     U = U_start
 
     preconditioner_variable_part = get_preconditioner(preconditioner_name=preconditioner_name,
-                                                                    S=S, T=T, Wh=Wh, Wv=Wv, tau=tau)
+                                                                    S=S, T=T, Qh=Qh, Qv=Qv, tau=tau)
 
     B_h = -1 / tau * Gh
     B_v = -1 / tau * Gv
     B_U = 1 / tau * (S.T @ Gh + Gv @ T.T)
 
-    linear_map_0_h, linear_map_0_v, linear_map_0_U = apply_linear_map(Vh_start, Vv_start, U_start, Wh, Wv, tau, S, T)
+    linear_map_0_h, linear_map_0_v, linear_map_0_U = apply_linear_map(Vh_start, Vv_start, U_start, Qh, Qv, tau, S, T)
     R_k_h = B_h - linear_map_0_h
     R_k_v = B_v - linear_map_0_v
     R_k_U = B_U - linear_map_0_U
@@ -363,7 +415,7 @@ def CG(Wh, Wv, S, T, tau, Gh, Gv, Vh_start, Vv_start, U_start,
 
     for iteration_CG in range(1, int(max_iter_CG) + 1):
 
-        linear_map_k_h, linear_map_k_v, linear_map_k_U = apply_linear_map(P_k_h, P_k_v, P_k_U, Wh, Wv, tau, S, T)
+        linear_map_k_h, linear_map_k_v, linear_map_k_U = apply_linear_map(P_k_h, P_k_v, P_k_U, Qh, Qv, tau, S, T)
 
         out = torch.trace(P_k_h.T @ linear_map_k_h) + torch.trace(P_k_v.T @ linear_map_k_v) + torch.trace(P_k_U.T @ linear_map_k_U)
         alpha_k = rho_k / out
@@ -421,11 +473,11 @@ def CG(Wh, Wv, S, T, tau, Gh, Gv, Vh_start, Vv_start, U_start,
 
 
 
-def apply_linear_map(Vh, Vv, U, Wh, Wv, tau, S, T):
+def apply_linear_map(Vh, Vv, U, Qh, Qv, tau, S, T):
     SU_minus_Vh = 1/tau * (S @ U - Vh)
     UT_minus_Vv = 1/tau * (U @ T - Vv)
-    top_part = Wh * Vh - SU_minus_Vh
-    middle_part = Wv * Vv - UT_minus_Vv
+    top_part = Qh * Vh - SU_minus_Vh
+    middle_part = Qv * Vv - UT_minus_Vv
     bottom_part = S.T @ SU_minus_Vh
     bottom_part = bottom_part + UT_minus_Vv @ T.T
     return top_part, middle_part, bottom_part  
@@ -434,6 +486,21 @@ def apply_linear_map(Vh, Vv, U, Wh, Wv, tau, S, T):
 
 
 def get_diagonal_kron_identity(K, side, identity_size):
+    """computes the diagonal of kron(np.eye(identity_size), np.diag(K)) if side is "left" and diagonal of kron(np.diag(K), np.eye(identity_size)) if side is "right"
+
+    Arguments:
+        K: 1darray (N)
+            1d-vector representing diagonal matrix of which we want to compute the kronecker product
+        side: str
+            string detailing on which side the identity should be in the kronecker product. Should be either "left" or "right"
+        identity_size: int
+            size of the identity matrix in the kronecker product
+    
+    Returns:
+        res: 1darray (N*identity_size)
+            diagonal of the corresponding kronecker product
+    """
+
     # K is a one-dimensional array
     # returns the diagonal of
     # kron(np.eye(identity_size), np.diag(K)) if side = "left"
@@ -449,13 +516,12 @@ def get_diagonal_kron_identity(K, side, identity_size):
 
     return res
 
-def get_preconditioner(preconditioner_name, S, T, Wh, Wv, tau):
-
+def get_preconditioner(preconditioner_name, S, T, Qh, Qv, tau):
     if preconditioner_name == "None":
         return None
     elif preconditioner_name == "block_diag" or preconditioner_name == "block_diag_dct":
-        Vh_part = Wh + 1/tau 
-        Vv_part = Wv + 1/tau 
+        Vh_part = Qh + 1/tau 
+        Vv_part = Qv + 1/tau 
 
         return (Vh_part, Vv_part)
 
@@ -500,7 +566,7 @@ def solve_sylvester(R, PS, PS_transpose, PT, PT_transpose, kron_diag, tau):
 
 
 def F_delta(delta, Vh, Vv, U, Wh, Wv, tau, Gh, Gv, S, T, Ch=0, Cv=0):
-    term_h = 0.5 * torch.sum( ((Ch * Vh)**2 + delta**2) * Wh + (1.0 / Wh))
-    term_v = 0.5 * torch.sum( ((Cv * Vv)**2 + delta**2) * Wv + (1.0 / Wv))
+    term_h = 0.5 * torch.sum( ((Ch * Vh)**2 + delta**2) * (1.0 / Wh) +  Wh)
+    term_v = 0.5 * torch.sum( ((Cv * Vv)**2 + delta**2) * (1.0 / Wv) +  Wv)
     term_reg = 0.5 / tau * ( torch.sum( (Vh - S@U + Gh)**2) + torch.sum( (Vv - U@T + Gv)**2))
     return term_h + term_v + term_reg
