@@ -25,8 +25,8 @@ def run_exp():
 
     # Define weighting strategy.
     # Here you can define or load your own weights Ch and Cv.
-    Ch = None
     Cv = None
+    Ch = None
     # If the above weights are not set to None,
     # setting weighting_strategy to "snaphu_weights" will compute statistical-based weights using SNAPHU,
     # otherwise setting weighting_strategy to None or to "uniform" will set all weights equal to 1
@@ -72,12 +72,12 @@ def run_exp():
     corrfile = None    
 
     start_time = time.time()
-    U, Vh, Vv = unwrap(X,
+    U, Vv, Vh = unwrap(X,
     model_params=model_params,
     irls_params=irls_params,
     amp1=amp1, amp2=amp2, corrfile=corrfile,
     weighting_strategy=weighting_strategy,
-    Ch=Ch, Cv=Cv, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
+    Cv=Cv, Ch=Ch, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
     run_on_gpu=run_on_gpu,
     verbose=True)
 
@@ -105,12 +105,12 @@ def run_exp():
     corrfile = np.load(path_corrfile)
 
     start_time = time.time()
-    U, Vh, Vv = unwrap(X,
+    U, Vv, Vh = unwrap(X,
     model_params=model_params,
     irls_params=irls_params,
     amp1=amp1, amp2=amp2, corrfile=corrfile,
     weighting_strategy=weighting_strategy,
-    Ch=Ch, Cv=Cv, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
+    Cv=Cv, Ch=Ch, snaphu_config_file=snaphu_config_file, snaphu_bin=snaphu_bin,
     run_on_gpu=run_on_gpu,
     verbose=True)
 
