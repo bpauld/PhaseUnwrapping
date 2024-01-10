@@ -1,6 +1,5 @@
 import torch
 from python_code.image_manipulation import *
-#import torch_dct as dct
 import os
 from python_code.utils import get_weights_from_snaphu
 from python_code.parameters import ModelParameters, IrlsParameters
@@ -222,28 +221,6 @@ def IRLS(X, Cv, Ch, model_params: ModelParameters=ModelParameters(),
         kron_diag = kron_diag.to(device)
 
         preconditioner_constant_part = (PS, PS_transpose, PT, PT_transpose, kron_diag)
-
-    elif preconditioner_name == "block_diag_dct":
-        DS = torch.diag(dct.dct_2d(S.T @ S))
-        DS = torch.where(DS > 1e-6, DS, 1e-6)
-
-        if N == M:
-            DT = DS
-        else:
-            DT, PT = torch.linalg.eigh((T @ T.T).to_dense(), UPLO="L")
-            #DT = torch.where(TT_eigenvalues > 1e-6, TT_eigenvalues, 1e-6)
-        if verbose:
-            print("Done computing DS and DT")
-
-        kron_diag = get_diagonal_kron_identity(DS.cpu().numpy(), "left", M) + get_diagonal_kron_identity(DT.cpu().numpy(), "right", N)
-        #kron_diag = torch.kron(torch.eye(M), torch.diag(DS)) + torch.kron(torch.diag(DT), torch.eye(N))
-
-        kron_diag = kron_diag.reshape((N, M), order='F')
-        kron_diag = torch.tensor(kron_diag, dtype=DEFAULT_TYPE)
-        #if torch.cuda.is_available():
-        #    kron_diag = kron_diag.cuda()
-        kron_diag = kron_diag.to(device)
-        preconditioner_constant_part = kron_diag
 
 
 
@@ -519,7 +496,7 @@ def get_diagonal_kron_identity(K, side, identity_size):
 def get_preconditioner(preconditioner_name, S, T, Qv, Qh, tau):
     if preconditioner_name == "None":
         return None
-    elif preconditioner_name == "block_diag" or preconditioner_name == "block_diag_dct":
+    elif preconditioner_name == "block_diag":
         Vv_part = Qv + 1/tau 
         Vh_part = Qh + 1/tau 
 
@@ -540,20 +517,6 @@ def apply_preconditioner(R_v, R_h, R_U, tau, preconditioner_variable_part,
 
         res_U = solve_sylvester(R_U, PS, PS_transpose, PT, PT_transpose, kron_diag, tau)
         return res_v, res_h, res_U
-
-    elif preconditioner_name == "block_diag_dct":
-        Vh_part, Vv_part = preconditioner_variable_part
-
-        kron_diag = preconditioner_constant_part
-
-        res_h = R_h / Vh_part
-        res_v = R_v / Vv_part
-
-
-        RHS = dct.dct_2d(tau*R_U)
-        PUP = RHS / kron_diag
-        res_U = dct.idct_2d(PUP)
-        return res_h, res_v, res_U 
 
 
 def solve_sylvester(R, PS, PS_transpose, PT, PT_transpose, kron_diag, tau):
