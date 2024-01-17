@@ -40,7 +40,7 @@ For the experiments on simulated images, the plots should look like the followin
 
 ## Acknowledgements
 
-To unwrap the image, one has the ability to use weights generated from the SNAPHU software. SNAPHU does not offer the option to only compute weights, so we slightly modifiy the original code and distribute it here. The copyright notice for the SNAPHU software is as follows:
+To unwrap the image, you can use weights generated from the SNAPHU software. SNAPHU does not offer the option to only compute weights, so we slightly modifiy the original code and distribute it here. The copyright notice for the SNAPHU software is as follows:
 
         Copyright
         ---------
