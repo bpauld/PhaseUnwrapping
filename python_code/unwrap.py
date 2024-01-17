@@ -228,14 +228,9 @@ def IRLS(X, Cv, Ch, model_params: ModelParameters=ModelParameters(),
     tau = torch.tensor(tau, dtype=DEFAULT_TYPE)
     delta = torch.tensor(delta, dtype=DEFAULT_TYPE)
     
-    #if torch.cuda.is_available():
-    #    tau = tau.cuda()
-    #    delta = delta.cuda()
     tau = tau.to(device)
     delta = delta.to(device)
 
-    #Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
-    #Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
     Wv =  torch.sqrt(Cv**2 * Vv**2 + delta**2)
     Wh =  torch.sqrt(Ch**2 * Vh**2 + delta**2)
 
@@ -250,12 +245,10 @@ def IRLS(X, Cv, Ch, model_params: ModelParameters=ModelParameters(),
         next_max_iter_CG = irls_params.max_iter_CG_start
     elif max_iter_CG_strategy == "constant":
         next_max_iter_CG = max_iter_CG
-    stepsize = delta
 
     for iteration in range(1, int(max_iter) + 1):
         if verbose:
             print("########################### Iteration", iteration, ", delta =", delta.item(), "#####################################")
-            print(torch.sum(U).item())
 
         # Update Vv, Vh, U with CG
         Vv_prev = Vv
@@ -273,8 +266,6 @@ def IRLS(X, Cv, Ch, model_params: ModelParameters=ModelParameters(),
                                         abs_tol=abs_tol_CG, rel_tol=rel_tol_CG,
                                         verbose=verbose)
 
-        if verbose:
-            print("Sum(U) = ", torch.sum(U).item())
         U = U - torch.mean(U)
         F_delta_new = F_delta(delta=delta, Vv=Vv, Vh=Vh, U=U, Wv=Wv, Wh=Wh, tau=tau, Gv=Gv, Gh=Gh, S=S, T=T, Cv=Cv, Ch=Ch)
         relative_improvement = (F_delta_prev - F_delta_new) / F_delta_prev
@@ -282,18 +273,16 @@ def IRLS(X, Cv, Ch, model_params: ModelParameters=ModelParameters(),
             print("F_delta after updating Vh, Vv, U =", F_delta_new.item(), ", relative improvement =", relative_improvement.item())
 
         F_delta_prev = F_delta_new
-
         # Update weights
-        #Wh = 1.0 / torch.sqrt(Ch**2 * Vh**2 + delta**2)
-        #Wv = 1.0 / torch.sqrt(Cv**2 * Vv**2 + delta**2)
         Wv =  torch.sqrt(Cv**2 * Vv**2 + delta**2)
         Wh =  torch.sqrt(Ch**2 * Vh**2 + delta**2)
 
         F_delta_new = F_delta(delta=delta, Vv=Vv, Vh=Vh, U=U, Wv=Wv, Wh=Wh, tau=tau, Gv=Gv, Gh=Gh, S=S, T=T, Cv=Cv, Ch=Ch)
         relative_improvement = (F_delta_prev - F_delta_new) / F_delta_prev
+        F1 = F(U=U, Gv=Gv, Gh=Gh, S=S, T=T, Cv=Cv, Ch=Ch)
+
         if verbose:
-            print("F_delta after updating Wv, Wh =", F_delta_new.item(), ", relative_improvement =", relative_improvement.item())
-            print("min(Wv) = ", torch.min(Wv).item(), ", max(Wh) = ", torch.max(Wh).item())
+            print("F_delta after updating Wv, Wh =", F_delta_new.item(), ", relative_improvement =", relative_improvement.item(), ", L1 obj = ", F1.item())
 
         F_delta_prev = F_delta_new
         if max_iter_CG_strategy == "heuristics":
@@ -528,8 +517,11 @@ def solve_sylvester(R, PS, PS_transpose, PT, PT_transpose, kron_diag, tau):
 
 
 
-def F_delta(delta, Vv, Vh, U, Wv, Wh, tau, Gv, Gh, S, T, Cv=0, Ch=0):
+def F_delta(delta, Vv, Vh, U, Wv, Wh, tau, Gv, Gh, S, T, Cv, Ch):
     term_v = 0.5 * torch.sum( ((Cv * Vv)**2 + delta**2) * (1.0 / Wv) +  Wv)
     term_h = 0.5 * torch.sum( ((Ch * Vh)**2 + delta**2) * (1.0 / Wh) +  Wh)
     term_reg = 0.5 / tau * ( torch.sum( (Vv - S@U + Gv)**2) + torch.sum( (Vh - U@T + Gh)**2))
     return term_v + term_h + term_reg
+
+def F(U, Gv, Gh, S, T, Cv, Ch):
+    return torch.sum(torch.abs(Cv * (S @ U - Gv))) + torch.sum(torch.abs(Ch * (U @ T - Gh)))
