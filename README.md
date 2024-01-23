@@ -1,6 +1,10 @@
 # Phase Unwrapping via Iteratively Reweighted Least Squares
 
-This repository contains code from our paper on 2D phase unwrapping using iteratively reweighted least squares, available [here](https://arxiv.org/abs/2401.09961).
+This repository contains code from our paper on 2D phase 
+
+Benjamin Dubois-Taine, Roland Akiki and Alexandre d'Aspremont. "Iteratively Reweighted Least Squares for Phase Unwrapping". In: arXiv preprint arXiv:2401.09961.
+
+[Paper](https://arxiv.org/abs/2401.09961).
 
 ## Installation
 
