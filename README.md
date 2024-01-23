@@ -1,5 +1,7 @@
 # Phase Unwrapping via Iteratively Reweighted Least Squares
 
+This repository contains code from our paper on 2D phase unwrapping using iteratively reweighted least squares, available [here](https://arxiv.org/abs/2401.09961).
+
 ## Installation
 
 Once you have downloaded the repository, we suggest creating a `conda` environment named `phase_unwrapping`.
@@ -91,4 +93,11 @@ To unwrap the image, you can use weights generated from the SNAPHU software. SNA
 ## Citing our work
 
 To cite our our work please use:
-TODO
+```
+@article{dubois2024iteratively,
+  title={Iteratively Reweighted Least Squares for Phase Unwrapping},
+  author={Dubois-Taine, Benjamin and Akiki, Roland and d'Aspremont, Alexandre},
+  journal={arXiv preprint arXiv:2401.09961},
+  year={2024}
+}
+```
